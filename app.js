@@ -1,11 +1,12 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const readline = require('readline');
+const chalk = require('chalk');
 
 
 
 (async () => {
-  const browser = await puppeteer.launch({headless: false});
+  const browser = await puppeteer.launch({headless: true});
   const page = await browser.newPage();  
   const fileStream = fs.createReadStream(`${__dirname}/nim.txt`);
 
@@ -58,7 +59,8 @@ const readline = require('readline');
     return card;
   };
 
-  
+  let sukses = 0;
+  let gagal = 0;
   const txt = readline.createInterface({
     input: fileStream,
     crlfDelay: Infinity
@@ -71,13 +73,15 @@ const readline = require('readline');
     }
 
     const nim = `e4117${line}`;
-    console.log(`${nim} Login...`);
+    console.log(`[+]${nim} Login...`);
     const wat = await login(nim);
     if(wat === true){
       const nama = await page.$eval('.dropdown-toggle.usermendrop', el => el.innerText);
-      console.log(`Sukses Login ${nama}`);
+      console.log(chalk.green(`[+]Sukses Login ${nama}`));
+      sukses++;
 
       const absen = await list_absen();
+      console.log(chalk.cyan(`[#]${absen.length} Absen Yang Ada`));
       for(let i = 0; i < absen.length; i++){
         await page.goto(absen[i].link,{waitUntil: 'networkidle2'});
         const link_absen = await page.evaluate(() => {
@@ -87,7 +91,7 @@ const readline = require('readline');
           }) ;
           return data;
         });      
-
+        console.log(chalk.cyan(`==>[${i+1}] ${absen[i].nama}: ${link_absen.length} Yang Bisa Diakses`));
         if(link_absen.length === 0){
           continue;
         }
@@ -101,14 +105,15 @@ const readline = require('readline');
           });
         }
       }
+      console.log(chalk.blue(`[+]Logout ${nama}...`));
       await logout();
     } else{
-      console.log(nim+' gagal login');
+      console.log(chalk.red('[-]'+nim+' Gagal Login'));
+      gagal++;
     }    
   }  
-
-  
-
-
-
+  console.log(`Berhasil : ${sukses}`);
+  console.log(`Gagal : ${gagal}`);
+  console.log('Selesai..');
+  await process.exit(1);
 })();
