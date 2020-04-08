@@ -5,7 +5,7 @@ const readline = require('readline');
 
 
 (async () => {
-  const browser = await puppeteer.launch({headless: false});
+  const browser = await puppeteer.launch({headless: true});
   const page = await browser.newPage();  
   const fileStream = fs.createReadStream(`${__dirname}/nim.txt`);
 
