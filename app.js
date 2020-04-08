@@ -5,7 +5,7 @@ const readline = require('readline');
 
 
 (async () => {
-  const browser = await puppeteer.launch({headless: true});
+  const browser = await puppeteer.launch({headless: false});
   const page = await browser.newPage();  
   const fileStream = fs.createReadStream(`${__dirname}/nim.txt`);
 
@@ -45,10 +45,10 @@ const readline = require('readline');
     await page.goto('http://jti.polije.ac.id/elearning/calendar/view.php',{waitUntil: 'networkidle2'});
     // const div_judul = await page.$$eval('h3.name.d-inline-block', nodes => nodes.map(n => n.innerText));
     const card = await page.evaluate(() => {
-      const data = Array.from(document.querySelectorAll('.calendar_event_attendance'), e => {
+      const data = Array.from(document.querySelectorAll('.calendar_event_attendance>div>a'), e => {
         const tanggal = e.offsetParent.children[0].children[3].innerText;
-        const nama = e.children[2].innerText;
-        const link = e.children[2].children[0].href;
+        const nama = e.text;
+        const link = e.href;
 
         return {tanggal,nama,link}
       }) ;
@@ -66,13 +66,18 @@ const readline = require('readline');
 
   for await (const line of txt) {
     // Each line in input.txt will be successively available here as `line`.
-    const wat = await login(`e4117${line}`);
+    if(line === ''){
+      continue;
+    }
+
+    const nim = `e4117${line}`;
+    console.log(`${nim} Login...`);
+    const wat = await login(nim);
     if(wat === true){
       const nama = await page.$eval('.dropdown-toggle.usermendrop', el => el.innerText);
       console.log(`Sukses Login ${nama}`);
 
       const absen = await list_absen();
-      
       for(let i = 0; i < absen.length; i++){
         await page.goto(absen[i].link,{waitUntil: 'networkidle2'});
         const link_absen = await page.evaluate(() => {
@@ -96,24 +101,9 @@ const readline = require('readline');
           });
         }
       }
-      
       await logout();
-    
-
-      // await page.goto(card.link,{waitUntil: 'networkidle2'});
-
-      // for(let i=0; i < absen.length; i++){
-      //   await page.goto(absen[i].link,{waitUntil: 'networkidle2'});
-      // }
-
-      // const out = await logout();
-      // if(out){
-      //   console.log(`Sukses Logout ${nama}`);
-      // } else{
-      //   console.log(`Gagal Logout ${nama}`);
-      // }
     } else{
-      console.log('gagal login');
+      console.log(nim+' gagal login');
     }    
   }  
 
