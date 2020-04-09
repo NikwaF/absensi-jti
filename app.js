@@ -3,10 +3,8 @@ const fs = require('fs');
 const readline = require('readline');
 const chalk = require('chalk');
 
-
-
 (async () => {
-  const browser = await puppeteer.launch({headless: true});
+  const browser = await puppeteer.launch({headless: false});
   const page = await browser.newPage();  
   const fileStream = fs.createReadStream(`${__dirname}/nim.txt`);
 
