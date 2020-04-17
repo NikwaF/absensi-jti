@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const readline = require('readline');
 const chalk = require('chalk');
+const delay = require('delay');
 
 (async () => {
   const browser = await puppeteer.launch({headless: false});
@@ -11,6 +12,7 @@ const chalk = require('chalk');
   const login = async function(nim){
     await page.goto('http://jti.polije.ac.id/elearning/login/index.php', {waitUntil: 'networkidle2'});
   
+    
     const username = await page.$('input[name=username]');
     const password = await page.$('input[name=password]');
     await username.focus();
@@ -43,7 +45,7 @@ const chalk = require('chalk');
   const list_absen = async () => {
     await page.goto('http://jti.polije.ac.id/elearning/calendar/view.php',{waitUntil: 'networkidle2'});
     // const div_judul = await page.$$eval('h3.name.d-inline-block', nodes => nodes.map(n => n.innerText));
-    const card = await page.evaluate(() => {
+    const card = await page.evaluate(() => {  
       const data = Array.from(document.querySelectorAll('.calendar_event_attendance>div>a'), e => {
         const tanggal = e.offsetParent.children[0].children[3].innerText;
         const nama = e.text;
@@ -77,9 +79,11 @@ const chalk = require('chalk');
       const nama = await page.$eval('.dropdown-toggle.usermendrop', el => el.innerText);
       console.log(chalk.green(`[+] Sukses Login ${nama}`));
       sukses++;
-
+      
       const absen = await list_absen();
       console.log(chalk.cyan(`[#] ${absen.length} Absen Yang Ada`));
+
+
       for(let i = 0; i < absen.length; i++){
         await page.goto(absen[i].link,{waitUntil: 'networkidle2'});
         const link_absen = await page.evaluate(() => {
@@ -89,6 +93,9 @@ const chalk = require('chalk');
           }) ;
           return data;
         });      
+        
+
+
         console.log(chalk.cyan(`       [${i+1}] ${absen[i].nama}: ${link_absen.length} Yang Bisa Diakses`));
         if(link_absen.length === 0){
           continue;
@@ -96,11 +103,32 @@ const chalk = require('chalk');
       
         for(let i =0; i < link_absen.length; i++){
           await page.goto(link_absen[i].link,{waitUntil: 'networkidle2'});
-          await page.evaluate(() => {
-            const test = document.querySelectorAll('fieldset.felement.fgroup>span>input')[0];
-            test.click();
-            document.querySelector('#id_submitbutton').click();
-          });
+          const present_btn = await page.$$('fieldset.felement.fgroup>span>input');
+          // await delay(1500);
+          await present_btn[0].click();
+          // await delay(1000000);
+          const submit_present = await page.$('#id_submitbutton');
+          await submit_present.click();
+          await page.waitForNavigation();  
+          const result =  await page.evaluate(() => {
+            const data = Array.from(document.querySelectorAll('table.generaltable.attwidth.boxaligncenter>tbody>tr.lastrow'), e => {
+              return e.cells[4].textContent
+            });
+  
+            return data;
+          });        
+  
+          if(result[0] === 'Self-recorded'){
+            console.log(`[#] ${nama} Berhasil Absen`);
+          } else{
+            console.log(`[#] ${nama} Gagal Absen`);
+          }
+
+          // await page.evaluate(() => {
+          //   const test = document.querySelectorAll('fieldset.felement.fgroup>span>input')[0];
+          //   test.click();
+          //   document.querySelector('#id_submitbutton').click();
+          // });
         }
       }
       console.log(chalk.blue(`[+] Logout ${nama}...`));
